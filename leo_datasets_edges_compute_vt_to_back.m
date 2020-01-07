@@ -127,8 +127,6 @@ for i = 1:length(fn) %76227
     
     imwrite(mat_255_3,vt_filePath_3);
 
-        
-    
 end
 
 function y = norml_values_strict(xx,max_value,min1,max1)
