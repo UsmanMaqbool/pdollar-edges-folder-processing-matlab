@@ -5,12 +5,15 @@ clear all;
 % 3 channel Level Edges Alone                   | Viewtag_3_e 
 % 3 Channel Rrr-ggg-bbb (without normalization)   | Viewtag_3_rbg 
 % 3 Channel rrr-ggg-bbb -> Edges-> normalization  | Viewtag_3_rgb_n
+addpath(genpath('/mnt/0287D1936157598A/docker_ws/Visual-place-Recognition-edgesbox'));
 
-Dataset_path = "/home/leo/docker_ws/datasets/Pittsburgh-all";
-Save_path_1_e = "/home/leo/docker_ws/datasets/NetvLad/Pittsburgh_Viewtag_1_e";
-Save_path_vt_3_e = "/home/leo/docker_ws/datasets/NetvLad/Pittsburgh_Viewtag_3_e";
-Save_path_vt_3_rgb = "/home/leo/docker_ws/datasets/NetvLad/Pittsburgh_Viewtag_3_rbg";
-Save_path_vt_3_rgb_n = "/home/leo/docker_ws/datasets/NetvLad/Pittsburgh_Viewtag_3_rgb_n";
+Dataset_path = '/mnt/0287D1936157598A/docker_ws/datasets/NetvLad/Pittsburgh/images';
+addpath(genpath(Dataset_path));
+
+Save_path_1_e ='/mnt/0287D1936157598A/docker_ws/datasets/NetvLad/view-tags/Pittsburgh_Viewtag_1_e';
+Save_path_vt_3_e = '/mnt/0287D1936157598A/docker_ws/datasets/NetvLad/view-tags/Pittsburgh_Viewtag_3_e';
+Save_path_vt_3_rgb = '/mnt/0287D1936157598A/docker_ws/datasets/NetvLad/view-tags/Pittsburgh_Viewtag_3_rbg';
+Save_path_vt_3_rgb_n = '/mnt/0287D1936157598A/docker_ws/datasets/NetvLad/view-tags/Pittsburgh_Viewtag_3_rgb_n';
 
 
 %% load pre-trained edge detection model and set opts (see edgesDemo.m)
@@ -30,9 +33,11 @@ opts.maxBoxes = 200;  % max number of boxes to detect 1e4
 % fn = getfn(Dataset_path, 'jpg$');
 filelist = dir(fullfile(Dataset_path, '**/*.jpg'));  %get list of files and folders in any subfolder
 fn = filelist(~[filelist.isdir]);  %remove folders from list
+size(fn)
+
 for i = 1:length(fn) %76227
-    
-    file_name = append(fn(i).folder,"/",fn(i).name); 
+    tStart = tic; 
+    file_name = strcat(fn(i).folder,"/",fn(i).name); 
     file_path = regexprep(fn(i).folder,Dataset_path,'','ignorecase');
     
     full_path_1_e = create_filepath_file(Save_path_1_e, file_path, fn(i).name);
@@ -40,23 +45,32 @@ for i = 1:length(fn) %76227
     full_path_3_rgb = create_filepath_file(Save_path_vt_3_rgb, file_path, fn(i).name);
     full_path_3_rgb_n = create_filepath_file(Save_path_vt_3_rgb_n, file_path, fn(i).name);
    
+    %% for Matfile
+    [folder, baseFileName, extension] = fileparts(fn(i).name);
+    % Ignore extension and replace it with .txt
+    vt_file_name = sprintf('%s.mat', baseFileName);
+    
+    vt_filePaths_1_e = create_filepath_file(Save_path_1_e, file_path, vt_file_name);
+    vt_filePaths3_rgb = create_filepath_file(Save_path_1_e, file_path, vt_file_name);
+
+
     %% Read and Process Image
     
     
     
-    I = imread(file_name);
+    I = imread(char(file_name));
     [bboxes, E] =edgeBoxes(I,model);
   %  results = uint8(E * 255);
 
     % Create three channels images
-    I_r = I; I_g = I; I_b = I;
-    I_r(:,:,2) = I(:,:,1); I_r(:,:,3) = I(:,:,1); 
-    I_g(:,:,1) = I(:,:,2); I_g(:,:,3) = I(:,:,2); 
-    I_b(:,:,1) = I(:,:,3); I_b(:,:,2) = I(:,:,3); 
+    % I_r = I; I_g = I; I_b = I;
+    %I_r(:,:,2) = I(:,:,1); I_r(:,:,3) = I(:,:,1); 
+    %I_g(:,:,1) = I(:,:,2); I_g(:,:,3) = I(:,:,2); 
+    %I_b(:,:,1) = I(:,:,3); I_b(:,:,2) = I(:,:,3); 
     
-    [bboxes_r, E_r] =edgeBoxes(I_r,model);
-    [bboxes_g, E_g] =edgeBoxes(I_g,model);
-    [bboxes_b, E_b] =edgeBoxes(I_b,model);
+    %[bboxes_r, E_r] =edgeBoxes(I_r,model);
+    %[bboxes_g, E_g] =edgeBoxes(I_g,model);
+    %[bboxes_b, E_b] =edgeBoxes(I_b,model);
 
     
 
@@ -86,7 +100,12 @@ for i = 1:length(fn) %76227
 
     mat_255 = c1_mat_255+c2_mat_255+c3_mat_255;
     
-    imwrite(mat_255, full_path_1_e)
+    imwrite(mat_255, char(full_path_1_e))
+
+    % Saving method
+    save(vt_filePaths_1_e,'bboxes');
+    
+    
     query_display = sprintf('%d out of %d is done so far %% %f',i,length(fn), i/length(fn)*100);
     disp(query_display)
     
@@ -98,41 +117,48 @@ for i = 1:length(fn) %76227
     Viewtag_3_e(:,:,3) = c3_mat_255;
     
     
-    imwrite(Viewtag_3_e,full_path_3_e);
+    imwrite(Viewtag_3_e,char(full_path_3_e));
     
     %% RGB
-    Viewtag_3_rgb = I;
+    %Viewtag_3_rgb = I;
     
-    Viewtag_3_rgb(:,:,1) = uint8(E_r * 255);
-    Viewtag_3_rgb(:,:,2) = uint8(E_g * 255);
-    Viewtag_3_rgb(:,:,3) = uint8(E_b * 255);
+    %Viewtag_3_rgb(:,:,1) = uint8(E_r * 255);
+    %Viewtag_3_rgb(:,:,2) = uint8(E_g * 255);
+    %Viewtag_3_rgb(:,:,3) = uint8(E_b * 255);
     
-    imwrite(Viewtag_3_rgb,full_path_3_rgb);
+    %imwrite(Viewtag_3_rgb,char(full_path_3_rgb));
+    % Saving method
+    %save(vt_filePaths3_rgb,'bboxes_r','bboxes_g','bboxes_b');
     
     %% RGB with normalization
     
-    e8u_norml_values_r_n = norml_values_strict(E_r,1,0,1);     % (xx,max_value,min1,max1)
-    e8u_norml_values_g_n = norml_values_strict(E_g,1,0,1);     % (xx,max_value,min1,max1)
-    e8u_norml_values_b_n = norml_values_strict(E_b,1,0,1);     % (xx,max_value,min1,max1)
+    %e8u_norml_values_r_n = norml_values_strict(E_r,1,0,1);     % (xx,max_value,min1,max1)
+    %e8u_norml_values_g_n = norml_values_strict(E_g,1,0,1);     % (xx,max_value,min1,max1)
+    %e8u_norml_values_b_n = norml_values_strict(E_b,1,0,1);     % (xx,max_value,min1,max1)
     
-    Viewtag_3_rgb_n = I;
+    %Viewtag_3_rgb_n = I;
     
     
-    Viewtag_3_rgb_n(:,:,1) = uint8(e8u_norml_values_r_n * 255);
-    Viewtag_3_rgb_n(:,:,2) = uint8(e8u_norml_values_g_n * 255);
-    Viewtag_3_rgb_n(:,:,3) = uint8(e8u_norml_values_b_n * 255);
+    %Viewtag_3_rgb_n(:,:,1) = uint8(e8u_norml_values_r_n * 255);
+    %Viewtag_3_rgb_n(:,:,2) = uint8(e8u_norml_values_g_n * 255);
+    %Viewtag_3_rgb_n(:,:,3) = uint8(e8u_norml_values_b_n * 255);
     
-    imwrite(Viewtag_3_rgb_n,full_path_3_rgb_n);
+    %imwrite(Viewtag_3_rgb_n,char(full_path_3_rgb_n));
+
+    tElapsed = toc(tStart); 
+    time_estimated = tElapsed*(length(fn)-i);
+    datestr(seconds(time_estimated),'HH:MM:SS')
+
 
 end
 
 function new_filePath = create_filepath_file(Parent_dir, file_dir, file_name)
-new_filePath = Parent_dir + file_dir; %filepath is between savepath (might need to create the directories)
+new_filePath = strcat(Parent_dir,file_dir); %filepath is between savepath (might need to create the directories)
      %% Save the original edge image
     if exist(new_filePath, 'dir')==0
-      mkdir(new_filePath)
+      mkdir(char(new_filePath))
     end
-    new_filePath = append(new_filePath,"/",file_name);
+    new_filePath = strcat(new_filePath,"/",file_name);
 end
 
 function y = norml_values_strict(xx,max_value,min1,max1)
